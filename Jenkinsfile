@@ -19,8 +19,8 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Compila la aplicacion Java omitiendo tests por agilidad
-                sh 'mvn clean package -DskipTests'
+                // Compila la aplicación Java ejecutando las pruebas unitarias
+                sh 'mvn clean package'
             }
         }
 
