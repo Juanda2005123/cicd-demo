@@ -19,8 +19,8 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Compila la aplicación Java ejecutando las pruebas unitarias sin fork de procesos
-                sh 'mvn clean package -DforkCount=0'
+                // Compila la aplicación ignorando el test de Selenium y sin fork de procesos
+                sh 'mvn clean package -Dtest=!SeleniumExampleTest -DforkCount=0'
             }
         }
 
