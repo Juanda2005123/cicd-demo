@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'maven-3'
+    }
+
     environment {
         APP_NAME = "cicd-demo"
         DOCKER_IMAGE = "cicd-demo-app:latest"
@@ -16,7 +20,7 @@ pipeline {
         stage('Build') {
             steps {
                 // Compila la aplicacion Java omitiendo tests por agilidad
-                sh './mvnw clean package -DskipTests'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
@@ -24,7 +28,7 @@ pipeline {
             steps {
                 // Esto cumple con el punto 3.1 del PDF
                 withSonarQubeEnv('SonarQube') {
-                    sh './mvnw sonar:sonar -Dsonar.projectKey=cicd-demo-app'
+                    sh 'mvn sonar:sonar -Dsonar.projectKey=cicd-demo-app'
                 }
             }
         }
