@@ -1,89 +1,40 @@
+# Taller de Diseño y Construcción de Pipelines CI/CD
 
-# CICD-DEMO
+**Estudiante:** Juan David Quintero Peña  
+**Asignatura:** Ingeniería de Software V  
+**Institución:** Universidad (Taller Jenkins)
 
-This project aims to be the basic skeleton to apply continuous integration and continuous delivery.
+---
 
-## Topology
+## 1. Introducción
+Este proyecto consiste en una aplicación desarrollada en **Spring Boot (Java)**, cuyo ciclo de vida de desarrollo y despliegue ha sido completamente automatizado. Se ha implementado un **Pipeline Declarativo en Jenkins**, permitiendo que cada cambio en el código fuente sea validado, analizado, empaquetado y desplegado de forma segura mediante prácticas modernas de DevOps.
 
-CICD Demo uses some kubernetes primitives to deploy:
+## 2. Arquitectura y Herramientas
+Para la construcción de este ecosistema de Integración y Despliegue Continuo (CI/CD), se han integrado las siguientes tecnologías:
 
-* Deployment
-* Services
-* Ingress ( with TLS )
+*   **Jenkins:** Orquestador principal encargado de ejecutar las etapas del pipeline.
+*   **Docker:** Utilizado para la contenedorización de la aplicación, garantizando portabilidad entre entornos.
+*   **SonarQube (SAST):** Herramienta de análisis estático de código para la detección de deuda técnica, bugs y vulnerabilidades en el código fuente.
+*   **Trivy:** Escáner de seguridad especializado en buscar vulnerabilidades críticas en las capas de las imágenes Docker antes de su despliegue.
+*   **Maven (maven-3):** Gestor de dependencias y construcción del proyecto Java.
 
-```bash
-     internet
-        |
-   [ Ingress ]
-   --|-----|--
-   [ Services ]
-   --|-----|--
-   [   Pods   ]
+## 3. Descripción del Pipeline
+El archivo \Jenkinsfile\ define las siguientes etapas secuenciales:
 
-```
+1.  **Checkout:** Realiza la clonación automática del código desde el repositorio de GitHub (SCM).
+2.  **Build:** Compila el proyecto generando el artefacto \.jar\ mediante el comando \mvn clean package\, utilizando la configuración de **maven-3**.
+3.  **Static Analysis (SonarQube):** Fase de análisis estático integrada con el servidor SonarQube para asegurar la calidad del software.
+4.  **Docker Build:** Construye una imagen Docker optimizada basada en la distribución **eclipse-temurin:17-jdk-alpine**.
+5.  **Container Security Scan (Trivy):** Ejecuta un análisis de seguridad sobre la imagen construida, filtrando por severidades **HIGH** y **CRITICAL**.
+6.  **Deploy:** Despliega automáticamente el contenedor, mapeando el servicio interno al **puerto 80** del host para su acceso público.
 
-This project includes:
+## 4. Personalización y Evidencias
+Como parte de los requisitos del taller, se realizó una personalización en la capa de presentación de la aplicación:
+*   Se modificó la vista principal (\index.html\) para mostrar el mensaje: **'Taller CI/CD - Juan'**.
+*   Se ajustaron las rutas de la API en el controlador para servir correctamente el contenido estático.
 
-* Spring Boot java app
-* Jenkinsfile integration to run pipelines
-* Dockerfile containing the base image to run java apps
-* Makefile and docker-compose to make the pipeline steps much simpler
-* Kubernetes deployment file demonstrating how to deploy this app in a simple Kubernetes cluster
+## 5. Mantenimiento del Entorno
+Para garantizar la eficiencia del servidor de automatización y optimizar el uso de disco, el pipeline incluye un bloque \post { always { ... } }\ que ejecuta la instrucción \cleanWs()\. Esto asegura que el workspace se limpie al finalizar cada ejecución, sin importar si el build fue exitoso o fallido.
 
-## Pipeline Setup
-
-Pipelines exist at Travis.
-
-Some pipelines are configured by **GitHub/Projects**. If you have created a repository in one of these, your project will be **automatically** built if it has a Jenkinsfile/Travis/Gitlab/CircleCI.
-
-Other pipelines are configured manually under folders. You can create a project manually with the following steps:
-
-How to run the app:
-
-```make
-make
-```
-
-## Testing
-
-Unit tests and integrations tests are separated using [JUnit Categories][].
-
-[JUnit Categories]: https://maven.apache.org/surefire/maven-surefire-plugin/examples/junit.html
-
-### Unit Tests
-
-```java
-mvn test -Dgroups=UnitTest
-```
-
-Or using Docker:
-
-```bash
-make build
-```
-
-### Integration Tests
-
-```java
-mvn integration-test -Dgroups=IntegrationTests
-```
-
-Or using Docker:
-
-```bash
-make integrationTest
-```
-
-### System Tests
-
-System tests run with Selenium using docker-compose to run a [Selenium standalone container][] with Chrome.
-
-[Selenium standalone container]: https://github.com/SeleniumHQ/docker-selenium
-
-Using Docker:
-
-* If you are running locally, make sure the `$APP_URL` is populated and points to a valid instance of your application. This variable is populated automatically in Jenkins.
-
-```bash
-APP_URL=http://dev-cicd-demo-master.anzcd.internal/ make systemTest
-```
+---
+*Este repositorio es parte de la entrega práctica del taller de Jenkins del curso de Ingeniería de Software V.*
