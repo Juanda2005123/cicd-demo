@@ -41,8 +41,8 @@ pipeline {
 
         stage('Container Security Scan (Trivy)') {
             steps {
-                // Ejecuta Trivy sin romper el pipeline si encuentra vulnerabilidades (--exit-code 0)
-                sh "trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}"
+                // Ejecuta Trivy y detiene el pipeline si encuentra vulnerabilidades (--exit-code 1)
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${DOCKER_IMAGE}"
             }
         }
 
