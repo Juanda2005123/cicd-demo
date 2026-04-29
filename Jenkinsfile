@@ -20,11 +20,12 @@ pipeline {
             }
         }
 
-        stage('Static Analysis') {
+        stage('Static Analysis (SonarQube)') {
             steps {
-                // Comentado para evitar que falle/demore el pipeline, como se solicito
-                echo 'Etapa de SonarQube comentada por rendimiento.'
-                // sh './mvnw sonar:sonar -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login=my-token'
+                // Esto cumple con el punto 3.1 del PDF
+                withSonarQubeEnv('SonarQube') {
+                    sh './mvnw sonar:sonar -Dsonar.projectKey=cicd-demo-app'
+                }
             }
         }
 
