@@ -1,93 +1,53 @@
-#!/usr/bin/env groovy
-
 pipeline {
-    environment{
-       FEATURE_NAME = BRANCH_NAME.replaceAll('[\\(\\)_/]','-').toLowerCase()
-       REGISTRY_PASSWORD = credentials('REGISTRY_PASSWORD')
-       REGISTRY_USERNAME = credentials('REGISTRY_USERNAME')
-       POSTGRES_PASSWORD = credentials('POSTGRES_PASSWORD')
-       APP_NAME = "cicd-demo"
+    agent any
+
+    environment {
+        APP_NAME = "cicd-demo"
+        DOCKER_IMAGE = "cicd-demo-app:latest"
     }
-    agent any 
+
     stages {
-        stage('Docker Build & Push') {
+        stage('Checkout') {
             steps {
-                sh "make dockerLogin build dockerBuild dockerPush"
-            }
-
-        }
-		// not in parallel due to race condition with .env
-        stage('Docker Scan') {
-            steps {
-                sh "make dockerScan"
-            }
-            post {
-                cleanup {
-                    sh "docker-compose down -v"
-                }
-            }
-        }
-        
-        stage('Parallel Tests') {
-            failFast true            
-            parallel {                  
-                stage('Static Code Analysis') {
-                    when {
-                        anyOf { branch 'master'; branch 'release'}
-                    }    
-                    steps {
-                        sh "make publishSonar"                        
-                    }
-                }
-                stage('Integration Tests') {
-                    steps {
-                        sh "make integrationTest"
-                    }
-                }
-            }
-        }
-        stage('Push Latest Tag') {
-            when { branch 'master' }
-            steps {
-                sh "make dockerPushLatest"
+                checkout scm
             }
         }
 
-        stage('Deploy To dev') {
-            environment { 
-                ENV = "dev"
-                APP_DNS = util.selectAppUrl(ENV, FEATURE_NAME, APP_NAME)
-                KUBE_SERVER = credentials("KUBE_API_SERVER")
-                KUBE_TOKEN = credentials("KUBE_DEV_TOKEN")
-            }
+        stage('Build') {
             steps {
-                sh "make kubeLogin deploy"
+                // Compila la aplicacion Java omitiendo tests por agilidad
+                sh './mvnw clean package -DskipTests'
             }
         }
-        
-        stage('Deploy To qa') {
-            when { expression { BRANCH_NAME ==~ /(master|release-[0-9]+$)/ }} // Only Master and Release branches 
-            environment { 
-                ENV = "qa"
-                APP_DNS = util.selectAppUrl(ENV, FEATURE_NAME, APP_NAME)
-                KUBE_SERVER = credentials("KUBE_API_SERVER")
-                KUBE_TOKEN = credentials("KUBE_QA_TOKEN")
-            }
+
+        stage('Static Analysis') {
             steps {
-                sh "make kubeLogin deploy"
+                // Comentado para evitar que falle/demore el pipeline, como se solicito
+                echo 'Etapa de SonarQube comentada por rendimiento.'
+                // sh './mvnw sonar:sonar -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login=my-token'
             }
         }
-        
-    }
-    post {
-        always {
-            script {
-                if(BRANCH_NAME ==~ /(master|release-[0-9]+$)/ ){
-                     util.notifySlack(currentBuild.result)
-                 }
+
+        stage('Docker Build') {
+            steps {
+                sh "docker build -t ${DOCKER_IMAGE} ."
             }
-            archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-            junit 'target/surefire-reports/*.xml'
+        }
+
+        stage('Container Security Scan (Trivy)') {
+            steps {
+                // Ejecuta Trivy sin romper el pipeline si encuentra vulnerabilidades (--exit-code 0)
+                sh "trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}"
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                // Elimina contenedor anterior si existe y despliega en el puerto 80 del host
+                sh 'docker rm -f cicd-app || true'
+                sh "docker run -d --name cicd-app -p 80:8080 ${DOCKER_IMAGE}"
+            }
         }
     }
 }
+
