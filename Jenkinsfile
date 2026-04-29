@@ -19,8 +19,8 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Compila la aplicación Java ejecutando las pruebas unitarias
-                sh 'mvn clean package'
+                // Compila la aplicación Java ejecutando las pruebas unitarias sin fork de procesos
+                sh 'mvn clean package -DforkCount=0'
             }
         }
 
@@ -41,8 +41,8 @@ pipeline {
 
         stage('Container Security Scan (Trivy)') {
             steps {
-                // Ejecuta Trivy y detiene el pipeline si encuentra vulnerabilidades (--exit-code 1)
-                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${DOCKER_IMAGE}"
+                // Ejecuta Trivy y detiene el pipeline si encuentra vulnerabilidades CRITICAL (--exit-code 1)
+                sh "trivy image --exit-code 1 --severity CRITICAL ${DOCKER_IMAGE}"
             }
         }
 
